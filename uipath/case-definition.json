@@ -1,0 +1,114 @@
+{
+  "CaseDefinition": {
+    "Name": "ClaimPilot - Insurance Claim",
+    "Description": "End-to-end insurance claim processing with multi-agent orchestration",
+    "Version": "1.0.0",
+    "Stages": [
+      {
+        "Name": "INTAKE",
+        "DisplayName": "Intake & Document Processing",
+        "Order": 1,
+        "AssignedActor": "intake_agent",
+        "ActorType": "agent",
+        "SLA": { "Duration": 4, "Unit": "hours" },
+        "Description": "Receive claim, extract documents via Document Understanding, validate data"
+      },
+      {
+        "Name": "TRIAGE",
+        "DisplayName": "Claim Triage & Classification",
+        "Order": 2,
+        "AssignedActor": "triage_workflow",
+        "ActorType": "robot",
+        "SLA": { "Duration": 1, "Unit": "hours" },
+        "Description": "Classify claim type (simple/complex), determine routing"
+      },
+      {
+        "Name": "INVESTIGATION",
+        "DisplayName": "Fraud Investigation",
+        "Order": 3,
+        "AssignedActor": "fraud_detection_agent",
+        "ActorType": "coded_agent",
+        "SLA": { "Duration": 2, "Unit": "hours" },
+        "Description": "Run fraud pattern analysis, produce risk score, determine routing"
+      },
+      {
+        "Name": "ASSESSMENT",
+        "DisplayName": "Policy Assessment & Evaluation",
+        "Order": 4,
+        "AssignedActor": "assessment_agent",
+        "ActorType": "agent",
+        "SLA": { "Duration": 24, "Unit": "hours" },
+        "Description": "Validate against policy terms, calculate coverage and payout"
+      },
+      {
+        "Name": "SETTLEMENT",
+        "DisplayName": "Settlement & Payment",
+        "Order": 5,
+        "AssignedActor": "settlement_agent",
+        "ActorType": "agent",
+        "SLA": { "Duration": 48, "Unit": "hours" },
+        "Description": "Process payment, generate confirmation, send notifications"
+      },
+      {
+        "Name": "CLOSED",
+        "DisplayName": "Case Closed",
+        "Order": 6,
+        "AssignedActor": null,
+        "ActorType": null,
+        "SLA": null,
+        "Description": "Case finalized, audit trail complete, archived"
+      }
+    ],
+    "CustomFields": [
+      { "Name": "ClaimId", "Type": "String", "Required": true },
+      { "Name": "ClaimType", "Type": "String", "Required": true },
+      { "Name": "ClaimantName", "Type": "String", "Required": true },
+      { "Name": "PolicyNumber", "Type": "String", "Required": true },
+      { "Name": "ClaimedAmount", "Type": "Decimal", "Required": true },
+      { "Name": "IncidentDate", "Type": "DateTime", "Required": true },
+      { "Name": "Description", "Type": "String", "Required": true },
+      { "Name": "FraudRiskScore", "Type": "Decimal", "Required": false },
+      { "Name": "FraudRiskLevel", "Type": "String", "Required": false },
+      { "Name": "FraudSignalCount", "Type": "Integer", "Required": false },
+      { "Name": "FraudRecommendation", "Type": "String", "Required": false },
+      { "Name": "NetPayout", "Type": "Decimal", "Required": false },
+      { "Name": "SettlementReference", "Type": "String", "Required": false },
+      { "Name": "AdjusterDecision", "Type": "String", "Required": false },
+      { "Name": "AdjusterNotes", "Type": "String", "Required": false }
+    ],
+    "ExceptionPaths": [
+      {
+        "Name": "FraudEscalation",
+        "TriggerStage": "INVESTIGATION",
+        "Condition": "FraudRiskLevel IN ('high', 'critical')",
+        "Action": "CreateHumanTask",
+        "TargetGroup": "fraud_investigators",
+        "Description": "Escalate to human fraud investigator when risk is high"
+      },
+      {
+        "Name": "HighValueReview",
+        "TriggerStage": "ASSESSMENT",
+        "Condition": "ClaimedAmount > 20000",
+        "Action": "CreateHumanTask",
+        "TargetGroup": "senior_adjusters",
+        "Description": "Route high-value claims to senior adjuster for approval"
+      },
+      {
+        "Name": "SLABreach",
+        "TriggerStage": "ANY",
+        "Condition": "SLA_EXCEEDED",
+        "Action": "EscalateToManager",
+        "TargetGroup": "claims_managers",
+        "Description": "Auto-escalate when any stage exceeds its SLA"
+      },
+      {
+        "Name": "MissingDocuments",
+        "TriggerStage": "INTAKE",
+        "Condition": "DocumentCount < RequiredDocumentCount",
+        "Action": "PauseAndNotify",
+        "TargetGroup": "claimant",
+        "Description": "Pause case and request missing documents from claimant"
+      }
+    ]
+  }
+}
